@@ -1,0 +1,255 @@
+{
+  "name": "Slack Recipe Bot.",
+  "nodes": [
+    {
+      "parameters": {
+        "trigger": [
+          "message"
+        ],
+        "channelId": {
+          "__rl": true,
+          "value": "C0C8VJVBR1R",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.slackTrigger",
+      "typeVersion": 1,
+      "position": [
+        -608,
+        128
+      ],
+      "id": "a300550f-4e69-496c-88fc-fdfec558ccbe",
+      "name": "Slack Trigger",
+      "webhookId": "601ac261-9432-4e3a-aaf0-e911adfda79c",
+      "credentials": {
+        "slackApi": {
+          "id": "hz2p6uchFi2Shlfx",
+          "name": "Test-recipes"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1542459-b751-42cc-95fe-6e971d259717",
+              "name": "=recipe",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -144,
+        112
+      ],
+      "id": "0152a1dd-23c1-4d99-a2e7-d2a68bc4e689",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Recipe name: {{ $json.recipe }}\n\nTask: List all the products and ingredients needed to make this recipe.\n\nRules:\n- Start with: \"To make {{ $json.recipe }} you'll need:\"\n- Then give a bulleted list using \"-\" with approximate quantities.\n- Keep it short and practical.\n- ONLY if the recipe name above is empty or is clearly not a food or dish name, reply with just: \"Sorry, I couldn't understand that recipe name. Please type a dish name, like Paneer Butter Masala.\"",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        48,
+        112
+      ],
+      "id": "c3cbae6e-94af-424e-8612-e2270eba3b3a",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        48,
+        288
+      ],
+      "id": "aab99d61-ead0-4bf6-a381-4b91fd5c4cb1",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "ZCSEkNb4ySG3bmL9",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json.text || '';\n\n// Convert \"- item\" lines to Slack bullets and tidy whitespace\nconst message = raw\n  .trim()\n  .replace(/\\*\\*(.*?)\\*\\*/g, '*$1*')   // markdown bold -> Slack bold\n  .replace(/^\\s*[-*]\\s+/gm, '• ')      // bullets\n  .replace(/\\n{3,}/g, '\\n\\n');         // remove extra blank lines\n\nreturn [{ json: { message } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        352,
+        112
+      ],
+      "id": "0f395c2a-3684-4196-877e-5155c1bb6bd5",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $('Slack Trigger').item.json.channel }}",
+          "mode": "id"
+        },
+        "text": "={{ $json.message }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        512,
+        112
+      ],
+      "id": "a4f08e02-6d1a-42d6-91c0-34dce466d9d3",
+      "name": "Send a message",
+      "webhookId": "c05a95bc-8288-458d-94ab-2d40fa288bda",
+      "credentials": {
+        "slackApi": {
+          "id": "hz2p6uchFi2Shlfx",
+          "name": "Test-recipes"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "00e71f52-3be4-41c9-973f-85b34ce8dd73",
+              "leftValue": "={{ !$json.bot_id && !$json.subtype }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -400,
+        128
+      ],
+      "id": "0218aef9-7609-43cd-ae8f-0344cdf1a407",
+      "name": "If"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Slack Trigger": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "928c35ad-1201-45a1-9df0-65f8c069cac3",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f9561fedbb53454a50678bdb63d20087b01487749cc08014df884681a342aca0"
+  },
+  "nodeGroups": [],
+  "id": "UMqw43z2FVpLGPBo",
+  "tags": []
+}
